@@ -73,18 +73,20 @@ int main()
 	bool isload = gravityProperties.readGravModel(gravModelName, maxDegree);
 	
 
-	//auto start = std::chrono::high_resolution_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 
 	Vector A(0.0, 0.0, 0.0);
 
-	if(isload)
+	if (isload){
+		std::cout << "Loaded...Starting..." << std::endl;
 		Vector A = gravityProperties.GetTessGrav(R, maxDegree, maxDegree);
+	}
 
-	std::cout << A;
 	
-	//auto stop = std::chrono::high_resolution_clock::now();
-	//auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-	//std::cout << "Time Per Step:\t\t"(double)duration.count() << std::endl;
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+	std::cout << A << std::endl;
+	std::cout << "Time Per Step:\t\t" << (double)duration.count() << std::endl;
 
 	system("pause");
 }
@@ -239,7 +241,11 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 	g4 = g4 + rho * g4temp;
 
 
-	Vector gperturbed(g1 - g4 * s, g2 - g4 * t, g3 - g4 * u);
+	Vector gperturbed;
+
+	gperturbed.x = (g1 - g4 * s);
+	gperturbed.y = (g2 - g4 * t);
+	gperturbed.z = (g3 - g4 * u);
 
 	return gperturbed;
 }
