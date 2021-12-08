@@ -12,7 +12,7 @@ public:
 	//TessGravProp();
 	~TessGravProp();
 	bool readGravModel(char* filename, int cutoff);
-	Vector GetTessGrav(const Vector rposmax, const double maxDegree);
+	Vector GetTessGrav(const Vector rposmax, const double maxDegree, const double maxOrder);
 	void GenerateAssocLegendreMatrix(int maxDegree);
 
 	static inline unsigned int NM(unsigned int n, unsigned int m) {return (n * n + n) / 2 + m;}
@@ -28,10 +28,12 @@ public:
 	double referenceLon;
 	double* C;
 	double* S;
+	double* R;
+	double* I;
 	unsigned long int numCoeff;
 
 	double r, s, t, u;
-	double rho, R, I, A00;
+	double rho;
 	double* A;
 	double a1, a2, a3, a4;
 };
@@ -44,31 +46,23 @@ int main()
 	//char gravModelName[256] = "jgl075d1.sha";
 	char gravModelName[256] = "jggrx_1500e_sha";
 
-	//if(readGravModel(gravityProperties, gravModelName, 300))
-	//{
-	//	for (unsigned int i = 0; i < gravityProperties.numCoeff; i++)
-	//	{
-	//		std::cout << i << "   " << gravityProperties.C[i] << "   " << gravityProperties.S[i] << std::endl;
-	//	}
-	//}
 
 	unsigned int maxDegree = 0;
 
 	std::cin >> maxDegree;
 	
 
-	/*Vector R = Vector(1738.0, 0.0, 0.0);
-	Vector A = gravityProperties.GetTessGrav(R, maxDegree);*/
+	Vector R = Vector(1738.0, 0.0, 0.0);
+	Vector A = gravityProperties.GetTessGrav(R, maxDegree, maxDegree);
 
-	gravityProperties.u = 1;
 
 	//bool isload = gravityProperties.readGravModel(gravModelName, maxDegree);
-	gravityProperties.GenerateAssocLegendreMatrix(maxDegree);
-	int n, m;
+	
+	/*int n, m;
 	std::cin >> n;
 	std::cin >> m;;
 
-	std::cout << gravityProperties.A[gravityProperties.NM(n, m)];
+	std::cout << gravityProperties.A[gravityProperties.NM(n, m)];*/
 
 	//auto start = std::chrono::high_resolution_clock::now();
 
@@ -141,7 +135,6 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 				numCoeff = linecount++;
 			}
 		}
-		GenerateAssocLegendreMatrix(cutoff);
 		return true;
 	}
 	else {
@@ -150,31 +143,59 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 	}
 }
 
-Vector TessGravProp::GetTessGrav(const Vector rpos, const double maxDegree)
+Vector TessGravProp::GetTessGrav(const Vector rpos, const double maxDegree, const double maxOrder)
 {
 	r = rpos.length();
 	s = rpos.x / r;
 	t = rpos.y / r;
 	u = rpos.z / r;
 
-	rho = GM / r;
-	R = 1;
-	I = 0;
+	rho = GM / (r*refRad);
+	double rhop = refRad / r;
+
+	R = new double[maxOrder];
+	I = new double[maxOrder];
+
+	R[0] = 0.0;
+	I[0] = 0.0;
+	R[1] = 1.0;
+	I[1] = 0.0;
+
+	for (int m = 2; m <= maxOrder; m++) {
+		R[m] = s * R[m - 1] - t * I[m - 1];
+		I[m] = s * I[m - 1] + t * R[m - 1];
+	}
+
+	double g1temp = 0.0;
+	double g2temp = 0.0;
+	double g3temp = 0.0;
+	double g4temp = 0.0;
+
+	double g1 = 0.0;
+	double g2 = 0.0;
+	double g3 = 0.0;
+	double g4 = 0.0;
+
+	int nmodel = 0;
+
+	GenerateAssocLegendreMatrix(maxDegree);
 
 
 	for (int n = 0; n <= maxDegree; n++) {
-		for (int m = 0; m <= n; m++) {
-			rho = pow(refRad / r, n + 1);
-			
-			a1 = 0;
-			a2 = 0;
+		
 
-			R = (s * R) - (t * I);
-			I = (s * I) + (t * R);
+		double SM = 0.5;
 
-			a3 = 0;
-			a4 = 0;
-		}
+		if (n > maxOrder)
+			nmodel = maxOrder;
+		else
+			nmodel = n;
+
+
+
+	/*	for (int m = 0; m <= nmodel; m++) {
+			double D = C[NM(n, m)]*R[];
+		}*/
 	}
 
 	return Vector();
@@ -214,11 +235,11 @@ void TessGravProp::GenerateAssocLegendreMatrix(int maxDegree)
 		A[NM(n, 0)] = A[NM(n, 0)] * sqrt(0.5);
 	}
 
-	for (int n = 0; n <= maxDegree+2; n++) {
-		for (int m = 0; m <= n; m++) {
-			std::cout << n << "\t" << m << "\t" << A[NM(n, m)] << std::endl;
-		}
-	}
+	//for (int n = 0; n <= maxDegree+2; n++) {
+	//	for (int m = 0; m <= n; m++) {
+	//		std::cout << n << "\t" << m << "\t" << A[NM(n, m)] << std::endl;
+	//	}
+	//}
 }
 
 TessGravProp::~TessGravProp()
