@@ -6,13 +6,29 @@
 
 #include "Vecmat.h"
 
+/*	The following functions are heavily based on the works of Samual Pines:
+ 
+	Pines, S., “Uniform Representation of the Gravitational Potential and its Derivatives,” AIAA Journal,
+	Vol. 11, No. 11, Nov. 1973, pp. 1508–1511.
+ 
+	And the examples found in:
+	
+	Normalization and Implementation of Three Gravitational Acceleration Models
+	Randy A. Eckman
+	Aaron J. Brown
+	Daniel R. Adamo
+
+
+*/
+
+
 class TessGravProp
 {
 public:
 	//TessGravProp();
 	~TessGravProp();
 	bool readGravModel(char* filename, int cutoff);
-	Vector GetTessGrav(const Vector rposmax, const double maxDegree, const double maxOrder);
+	Vector GetTessGrav(const Vector rposmax, const int maxDegree, const int maxOrder);
 	void GenerateAssocLegendreMatrix(int maxDegree);
 
 	static inline unsigned int NM(unsigned int n, unsigned int m) {return (n * n + n) / 2 + m;}
@@ -52,20 +68,19 @@ int main()
 	std::cin >> maxDegree;
 	
 
-	Vector R = Vector(1738.0, 0.0, 0.0);
-	Vector A = gravityProperties.GetTessGrav(R, maxDegree, maxDegree);
+	Vector R = Vector(1738.0, 30.0, 0.0);
 
-
-	//bool isload = gravityProperties.readGravModel(gravModelName, maxDegree);
+	bool isload = gravityProperties.readGravModel(gravModelName, maxDegree);
 	
-	/*int n, m;
-	std::cin >> n;
-	std::cin >> m;;
-
-	std::cout << gravityProperties.A[gravityProperties.NM(n, m)];*/
 
 	//auto start = std::chrono::high_resolution_clock::now();
 
+	Vector A(0.0, 0.0, 0.0);
+
+	if(isload)
+		Vector A = gravityProperties.GetTessGrav(R, maxDegree, maxDegree);
+
+	std::cout << A;
 	
 	//auto stop = std::chrono::high_resolution_clock::now();
 	//auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -143,8 +158,16 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 	}
 }
 
-Vector TessGravProp::GetTessGrav(const Vector rpos, const double maxDegree, const double maxOrder)
+Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const int maxOrder)
 {
+	if ((maxDegree < 2) || (maxOrder < 2)) {
+		Vector temp;
+		temp.x = 0;
+		temp.y = 0;
+		temp.z = 0;
+		return temp;
+	}	
+
 	r = rpos.length();
 	s = rpos.x / r;
 	t = rpos.y / r;
@@ -153,8 +176,8 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const double maxDegree, cons
 	rho = GM / (r*refRad);
 	double rhop = refRad / r;
 
-	R = new double[maxOrder];
-	I = new double[maxOrder];
+	R = new double[maxOrder+1];
+	I = new double[maxOrder+1];
 
 	R[0] = 0.0;
 	I[0] = 0.0;
@@ -193,12 +216,32 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const double maxDegree, cons
 
 
 
-	/*	for (int m = 0; m <= nmodel; m++) {
-			double D = C[NM(n, m)]*R[];
-		}*/
+		for (int m = 0; m <= nmodel; m++) {
+			double D = C[NM(n, m)] * R[m+1] + S[NM(n, m)] * I[m+1];
+			double E = C[NM(n, m)] * R[m] + S[NM(n, m)] * I[m];
+			double F = S[NM(n, m)] * R[m] - C[NM(n, m)] * I[m];
+
+			double ALPHA = sqrt(SM*(n-m)*(n+m+1));
+
+			g1temp = g1temp + A[NM(n, m)] * m * E;
+			g2temp = g2temp + A[NM(n, m)] * m * F;
+			g3temp = g3temp + ALPHA * A[NM(n, m)] * D;
+			g4temp = g4temp + ((n + m + 1) * A[NM(n, m)] + ALPHA * u * A[NM(n, m+1)] * D);
+
+		}
 	}
 
-	return Vector();
+	rho = rhop * rho;
+
+	g1 = g1 + rho * g1temp;
+	g2 = g2 + rho * g2temp;
+	g3 = g3 + rho * g3temp;
+	g4 = g4 + rho * g4temp;
+
+
+	Vector gperturbed(g1 - g4 * s, g2 - g4 * t, g3 - g4 * u);
+
+	return gperturbed;
 }
 
 void TessGravProp::GenerateAssocLegendreMatrix(int maxDegree)
