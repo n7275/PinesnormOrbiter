@@ -88,7 +88,7 @@ int main()
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 	std::cout << A << std::endl;
-	std::cout << "Time Per Step:\t\t" << (double)duration.count() << std::endl;
+	std::cout << "\nTime Per Step:\t\t" << (double)duration.count() << std::endl;
 
 	system("pause");
 }
@@ -179,15 +179,15 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 	rho = GM / (r*refRad);
 	double rhop = refRad / r;
 
-	R = new double[maxOrder+1];
-	I = new double[maxOrder+1];
+	R = new double[maxOrder+2];
+	I = new double[maxOrder+2];
 
 	R[0] = 0.0;
 	I[0] = 0.0;
 	R[1] = 1.0;
 	I[1] = 0.0;
 
-	for (int m = 2; m <= maxOrder; m++) {
+	for (int m = 2; m <= maxOrder+1; m++) {
 		R[m] = s * R[m - 1] - t * I[m - 1];
 		I[m] = s * I[m - 1] + t * R[m - 1];
 	}
@@ -209,6 +209,10 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 
 	for (int n = 0; n <= maxDegree; n++) {
 		
+		g1temp = 0.0;
+		g2temp = 0.0;
+		g3temp = 0.0;
+		g4temp = 0.0;
 
 		double SM = 0.5;
 
@@ -218,20 +222,20 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 			nmodel = n;
 
 
-
 		for (int m = 0; m <= nmodel; m++) {
-			std::cout << n << "\t" << m << "\t" << S[NM(n, m)] << std::endl;
+
 			double D = C[NM(n, m)] * R[m + 1] + S[NM(n, m)] * I[m + 1];
 			double E = C[NM(n, m)] * R[m] + S[NM(n, m)] * I[m];
 			double F = S[NM(n, m)] * R[m] - C[NM(n, m)] * I[m];
+			
 
 			double ALPHA = sqrt(SM*(n-m)*(n+m+1));
 
 			g1temp = g1temp + A[NM(n, m)] * m * E;
 			g2temp = g2temp + A[NM(n, m)] * m * F;
-			g3temp = g3temp + ALPHA * A[NM(n, m)] * D;
-			g4temp = g4temp + ((n + m + 1) * A[NM(n, m)] + ALPHA * u * A[NM(n, m+1)] * D);
-			
+			g3temp = g3temp + ALPHA * A[NM(n, m+1)] * D;
+			g4temp = g4temp + ((n + m + 1) * A[NM(n, m)] + ALPHA * u * A[NM(n, m+1)]) * D;
+
 			if (m == 0) { SM = 1.0; ; }
 		}
 		rho = rhop * rho;
@@ -286,11 +290,6 @@ void TessGravProp::GenerateAssocLegendreMatrix(int maxDegree)
 		A[NM(n, 0)] = A[NM(n, 0)] * sqrt(0.5);
 	}
 
-	//for (int n = 0; n <= maxDegree+2; n++) {
-	//	for (int m = 0; m <= n; m++) {
-	//		std::cout << n << "\t" << m << "\t" << A[NM(n, m)] << std::endl;
-	//	}
-	//}
 }
 
 TessGravProp::~TessGravProp()
