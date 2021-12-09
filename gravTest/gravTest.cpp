@@ -58,9 +58,11 @@ public:
 int main()
 {
 	TessGravProp gravityProperties;
+	std::cout.precision(16);
 
 	//char gravModelName[256] = "jgl075d1.sha";
-	char gravModelName[256] = "jggrx_1500e_sha";
+	char gravModelName[256] = "jgl165p1.sha";
+	//char gravModelName[256] = "jggrx_1500e_sha";
 
 
 	unsigned int maxDegree = 0;
@@ -68,7 +70,7 @@ int main()
 	std::cin >> maxDegree;
 	
 
-	Vector R = Vector(1800, 0.0, 0.0);
+	Vector R = Vector(0.0, 0.0, 1738);
 
 	bool isload = gravityProperties.readGravModel(gravModelName, maxDegree);
 	
@@ -105,8 +107,6 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 	C[0] = 0;
 	S[0] = 0;
 
-	std::cout.precision(16);
-
 	fopen_s(&gravModelFile, filename, "rt");
 
 	if (gravModelFile) {
@@ -128,9 +128,9 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 					&referenceLon)) {
 					return false;
 				}
-				numCoeff = linecount++;
+				numCoeff = linecount+=2;
 			}
-			else if (linecount <= maxLines) {
+			else if (linecount <= maxLines+1) {
 				double* tempC = new double[linecount];
 				double* tempS = new double[linecount];
 
@@ -143,10 +143,11 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 				C = tempC;
 				S = tempS;
 
+				unsigned int lineindex = linecount - 1;
 
 				if (!sscanf(gravFileLine, " %*d , %*d , %lf , %lf , %*lf , %*lf \n",
-					&C[linecount - 1],
-					&S[linecount - 1])) {
+					&C[lineindex],
+					&S[lineindex])) {
 					return false;
 				}
 				numCoeff = linecount++;
@@ -219,7 +220,8 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 
 
 		for (int m = 0; m <= nmodel; m++) {
-			double D = C[NM(n, m)] * R[m+1] + S[NM(n, m)] * I[m+1];
+			std::cout << n << "\t" << m << "\t" << S[NM(n, m)] << std::endl;
+			double D = C[NM(n, m)] * R[m + 1] + S[NM(n, m)] * I[m + 1];
 			double E = C[NM(n, m)] * R[m] + S[NM(n, m)] * I[m];
 			double F = S[NM(n, m)] * R[m] - C[NM(n, m)] * I[m];
 
