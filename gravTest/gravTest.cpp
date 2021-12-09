@@ -68,7 +68,7 @@ int main()
 	std::cin >> maxDegree;
 	
 
-	Vector R = Vector(1738.0, 30.0, 0.0);
+	Vector R = Vector(1800, 0.0, 0.0);
 
 	bool isload = gravityProperties.readGravModel(gravModelName, maxDegree);
 	
@@ -79,7 +79,7 @@ int main()
 
 	if (isload){
 		std::cout << "Loaded...Starting..." << std::endl;
-		Vector A = gravityProperties.GetTessGrav(R, maxDegree, maxDegree);
+		A = gravityProperties.GetTessGrav(R, maxDegree, maxDegree);
 	}
 
 	
@@ -229,17 +229,17 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 			g2temp = g2temp + A[NM(n, m)] * m * F;
 			g3temp = g3temp + ALPHA * A[NM(n, m)] * D;
 			g4temp = g4temp + ((n + m + 1) * A[NM(n, m)] + ALPHA * u * A[NM(n, m+1)] * D);
-
+			
+			if (m == 0) { SM = 1.0; ; }
 		}
+		rho = rhop * rho;
+
+		g1 = g1 + rho * g1temp;
+		g2 = g2 + rho * g2temp;
+		g3 = g3 + rho * g3temp;
+		g4 = g4 + rho * g4temp;
+
 	}
-
-	rho = rhop * rho;
-
-	g1 = g1 + rho * g1temp;
-	g2 = g2 + rho * g2temp;
-	g3 = g3 + rho * g3temp;
-	g4 = g4 + rho * g4temp;
-
 
 	Vector gperturbed;
 
