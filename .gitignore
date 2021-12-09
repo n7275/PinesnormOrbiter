@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/gravTest/jggrx_1500e_sha
+/gravTest/jgl165p1.sha
