@@ -61,8 +61,8 @@ int main()
 	std::cout.precision(16);
 
 	//char gravModelName[256] = "jgl075d1.sha";
-	char gravModelName[256] = "jgl165p1.sha";
-	//char gravModelName[256] = "jggrx_1500e_sha";
+	//char gravModelName[256] = "jgl165p1.sha";
+	char gravModelName[256] = "jggrx_1500e_sha";
 
 
 	unsigned int maxDegree = 0;
@@ -95,13 +95,15 @@ int main()
 
 bool TessGravProp::readGravModel(char* filename, int cutoff)
 {
+// Copyright (c) Matthew Hume
+// Licensed under the MIT License
 	FILE* gravModelFile;
 	char gravFileLine[512];
 	bool isEOF = false;
 	unsigned int linecount = 0;
 	unsigned int maxLines = (cutoff * cutoff + cutoff) / 2 + cutoff;
-	C = new double[1];
-	S = new double[1];
+	C = new double[NM(cutoff, cutoff) + 2];
+	S = new double[NM(cutoff, cutoff) + 2];
 	numCoeff = 0;
 
 	C[0] = 0;
@@ -131,17 +133,6 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 				numCoeff = linecount+=2;
 			}
 			else if (linecount <= maxLines+1) {
-				double* tempC = new double[linecount];
-				double* tempS = new double[linecount];
-
-				memcpy(tempC, C, (linecount) * sizeof(double));
-				memcpy(tempS, S, (linecount) * sizeof(double));
-
-				delete[] C;
-				delete[] S;
-
-				C = tempC;
-				S = tempS;
 
 				unsigned int lineindex = linecount - 1;
 
