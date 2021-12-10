@@ -22,14 +22,14 @@
 */
 
 
-class TessGravProp
+class PinesGravProp
 {
 public:
-	//TessGravProp();
-	~TessGravProp();
+	//PinesGravProp();
+	~PinesGravProp();
 	bool readGravModel(char* filename, int cutoff);
-	Vector GetTessGrav(const Vector rposmax, const int maxDegree, const int maxOrder);
-	void GenerateAssocLegendreMatrix(int maxDegree);
+	Vector GetPinesGrav(const Vector rposmax, const int maxDegree, const int maxOrder);
+	inline void GenerateAssocLegendreMatrix(int maxDegree);
 
 	static inline unsigned int NM(unsigned int n, unsigned int m) {return (n * n + n) / 2 + m;}
 	static inline double KroneckerDelta(int m) { return (double)((m == 0) ? 1 : 0); };
@@ -44,20 +44,29 @@ public:
 	double referenceLon;
 	double* C;
 	double* S;
+	double* A;
 	double* R;
 	double* I;
 	unsigned long int numCoeff;
 
 	double r, s, t, u;
-	double rho;
-	double* A;
-	double a1, a2, a3, a4;
+	double rho, rhop;
+
+	double g1temp;
+	double g2temp;
+	double g3temp;
+	double g4temp;
+
+	double g1;
+	double g2;
+	double g3;
+	double g4;
 };
 
 
 int main()
 {
-	TessGravProp gravityProperties;
+	PinesGravProp gravityProperties;
 	std::cout.precision(16);
 
 	//char gravModelName[256] = "jgl075d1.sha";
@@ -73,7 +82,7 @@ int main()
 	Vector R = Vector(0.0, 0.0, 1738);
 
 	bool isload = gravityProperties.readGravModel(gravModelName, maxDegree);
-	
+
 
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -81,19 +90,20 @@ int main()
 
 	if (isload){
 		std::cout << "Loaded...Starting..." << std::endl;
-		A = gravityProperties.GetTessGrav(R, maxDegree, maxDegree);
+		A = gravityProperties.GetPinesGrav(R, maxDegree, maxDegree);
 	}
 
-	
+
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 	std::cout << A << std::endl;
 	std::cout << "\nTime Per Step:\t\t" << (double)duration.count() << std::endl;
+	
 
 	system("pause");
 }
 
-bool TessGravProp::readGravModel(char* filename, int cutoff)
+bool PinesGravProp::readGravModel(char* filename, int cutoff)
 {
 // Copyright (c) Matthew Hume
 // Licensed under the MIT License
@@ -102,8 +112,11 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 	bool isEOF = false;
 	unsigned int linecount = 0;
 	unsigned int maxLines = (cutoff * cutoff + cutoff) / 2 + cutoff;
-	C = new double[NM(cutoff, cutoff) + 2];
-	S = new double[NM(cutoff, cutoff) + 2];
+	C = new double[(size_t)NM(cutoff, cutoff) + 2];
+	S = new double[(size_t)NM(cutoff, cutoff) + 2];
+	R = new double[(size_t)cutoff + 2];
+	I = new double[(size_t)cutoff + 2];
+	A = new double[NM((size_t)cutoff + 3, (size_t)cutoff + 3)]; //FIXME move to read function
 	numCoeff = 0;
 
 	C[0] = 0;
@@ -152,7 +165,7 @@ bool TessGravProp::readGravModel(char* filename, int cutoff)
 	}
 }
 
-Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const int maxOrder)
+Vector PinesGravProp::GetPinesGrav(const Vector rpos, const int maxDegree, const int maxOrder)
 {
 	if ((maxDegree < 2) || (maxOrder < 2)) {
 		Vector temp;
@@ -168,10 +181,7 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 	u = rpos.z / r;
 
 	rho = GM / (r*refRad);
-	double rhop = refRad / r;
-
-	R = new double[maxOrder+2];
-	I = new double[maxOrder+2];
+	rhop = refRad / r;
 
 	R[0] = 0.0;
 	I[0] = 0.0;
@@ -183,15 +193,15 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 		I[m] = s * I[m - 1] + t * R[m - 1];
 	}
 
-	double g1temp = 0.0;
-	double g2temp = 0.0;
-	double g3temp = 0.0;
-	double g4temp = 0.0;
+	g1temp = 0.0;
+	g2temp = 0.0;
+	g3temp = 0.0;
+	g4temp = 0.0;
 
-	double g1 = 0.0;
-	double g2 = 0.0;
-	double g3 = 0.0;
-	double g4 = 0.0;
+	g1 = 0.0;
+	g2 = 0.0;
+	g3 = 0.0;
+	g4 = 0.0;
 
 	int nmodel = 0;
 
@@ -220,12 +230,12 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 			double F = S[NM(n, m)] * R[m] - C[NM(n, m)] * I[m];
 			
 
-			double ALPHA = sqrt(SM*(n-m)*(n+m+1));
+			double ALPHA = sqrt(SM*((double)n- (double)m)*((double)n+ (double)m+1));
 
-			g1temp = g1temp + A[NM(n, m)] * m * E;
-			g2temp = g2temp + A[NM(n, m)] * m * F;
+			g1temp = g1temp + A[NM(n, m)] * (double)m * E;
+			g2temp = g2temp + A[NM(n, m)] * (double)m * F;
 			g3temp = g3temp + ALPHA * A[NM(n, m+1)] * D;
-			g4temp = g4temp + ((n + m + 1) * A[NM(n, m)] + ALPHA * u * A[NM(n, m+1)]) * D;
+			g4temp = g4temp + (((double)n + (double)m + 1) * A[NM(n, m)] + ALPHA * u * A[NM(n, m+1)]) * D;
 
 			if (m == 0) { SM = 1.0; ; }
 		}
@@ -247,9 +257,8 @@ Vector TessGravProp::GetTessGrav(const Vector rpos, const int maxDegree, const i
 	return gperturbed;
 }
 
-void TessGravProp::GenerateAssocLegendreMatrix(int maxDegree)
+inline void PinesGravProp::GenerateAssocLegendreMatrix(int maxDegree)
 {
-	A = new double[NM(maxDegree + 3, maxDegree + 3)]; //FIXME move to read function
 	A[0] = sqrt(2.0);
 
 	for (int m = 0; m <= (maxDegree+2); m++) {
@@ -283,9 +292,11 @@ void TessGravProp::GenerateAssocLegendreMatrix(int maxDegree)
 
 }
 
-TessGravProp::~TessGravProp()
+PinesGravProp::~PinesGravProp()
 {
 	delete[] C;
 	delete[] S;
 	delete[] A;
+	delete[] R;
+	delete[] I;
 }
