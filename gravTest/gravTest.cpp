@@ -42,11 +42,11 @@ public:
 	unsigned int normalized;
 	double referenceLat;
 	double referenceLon;
-	double* C;
-	double* S;
-	double* A;
-	double* R;
-	double* I;
+	double* __restrict C;
+	double* __restrict S;
+	double* __restrict A;
+	double* __restrict R;
+	double* __restrict I;
 	unsigned long int numCoeff;
 
 	double r, s, t, u;
@@ -112,11 +112,16 @@ bool PinesGravProp::readGravModel(char* filename, int cutoff)
 	bool isEOF = false;
 	unsigned int linecount = 0;
 	unsigned int maxLines = (cutoff * cutoff + cutoff) / 2 + cutoff;
-	C = new double[(size_t)NM(cutoff, cutoff) + 2];
-	S = new double[(size_t)NM(cutoff, cutoff) + 2];
-	R = new double[(size_t)cutoff + 2];
-	I = new double[(size_t)cutoff + 2];
-	A = new double[NM((size_t)cutoff + 3, (size_t)cutoff + 3)]; //FIXME move to read function
+	try {
+		C = new double[(size_t)NM(cutoff + 1, cutoff + 1)];
+		S = new double[(size_t)NM(cutoff + 1, cutoff + 1)];
+		R = new double[(size_t)cutoff + 2];
+		I = new double[(size_t)cutoff + 2];
+		A = new double[NM((size_t)cutoff + 3, (size_t)cutoff + 3)]; //FIXME move to read function
+	}
+	catch (std::bad_alloc& other) {
+		return false;
+	}
 	numCoeff = 0;
 
 	C[0] = 0;
