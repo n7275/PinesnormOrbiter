@@ -32,8 +32,6 @@ public:
 	inline void GenerateAssocLegendreMatrix(int maxDegree);
 
 	static inline unsigned int NM(unsigned int n, unsigned int m) {return (n * n + n) / 2 + m;}
-	static inline double KroneckerDelta(int m) { return (double)((m == 0) ? 1 : 0); };
-	static inline double normLegendre(unsigned int n, unsigned int m) {return sqrt((2 - KroneckerDelta(m)) * (2 * (double)n + 1) * (std::tgamma(n - m + 1) / std::tgamma(n + m + 1)));}
 
 	double refRad;
 	double GM;
@@ -119,7 +117,7 @@ bool PinesGravProp::readGravModel(char* filename, int cutoff)
 		I = new double[(size_t)cutoff + 2];
 		A = new double[NM((size_t)cutoff + 3, (size_t)cutoff + 3)]; //FIXME move to read function
 	}
-	catch (std::bad_alloc& other) {
+	catch (std::bad_alloc) {
 		return false;
 	}
 	numCoeff = 0;
@@ -146,6 +144,7 @@ bool PinesGravProp::readGravModel(char* filename, int cutoff)
 					&normalized,
 					&referenceLat,
 					&referenceLon)) {
+					maxLines = NM(order, degree);
 					return false;
 				}
 				numCoeff = linecount+=2;
@@ -162,6 +161,7 @@ bool PinesGravProp::readGravModel(char* filename, int cutoff)
 				numCoeff = linecount++;
 			}
 		}
+		//log: successfully loaded numCoeff gravity coefficients for [planet]
 		return true;
 	}
 	else {
@@ -172,14 +172,6 @@ bool PinesGravProp::readGravModel(char* filename, int cutoff)
 
 Vector PinesGravProp::GetPinesGrav(const Vector rpos, const int maxDegree, const int maxOrder)
 {
-	if ((maxDegree < 2) || (maxOrder < 2)) {
-		Vector temp;
-		temp.x = 0;
-		temp.y = 0;
-		temp.z = 0;
-		return temp;
-	}	
-
 	r = rpos.length();
 	s = rpos.x / r;
 	t = rpos.y / r;
